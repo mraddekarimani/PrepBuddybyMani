@@ -2,16 +2,27 @@ import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useTaskContext } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Sun, BookOpen, LogOut } from 'lucide-react';
+import { Moon, Sun, BookOpen, LogOut, AlertCircle } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { currentDay, streak } = useTaskContext();
-  const { signOut } = useAuth();
+  const { signOut, isDemoMode } = useAuth();
 
   return (
     <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200">
       <div className="container mx-auto px-4 py-4">
+        {isDemoMode && (
+          <div className="mb-4 bg-amber-100 dark:bg-amber-900 border border-amber-400 text-amber-700 dark:text-amber-200 px-4 py-2 rounded-lg">
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <span className="text-sm">
+                <strong>Demo Mode:</strong> This is a preview version. To enable full functionality, configure Supabase.
+              </span>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <BookOpen className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, LogIn, UserPlus, RefreshCw, BookOpen, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, RefreshCw, BookOpen, ArrowLeft, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Auth: React.FC = () => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, isDemoMode } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -93,10 +93,24 @@ const Auth: React.FC = () => {
             </p>
           </div>
 
+          {isDemoMode && (
+            <div className="bg-amber-100 dark:bg-amber-900 border border-amber-400 text-amber-700 dark:text-amber-200 px-4 py-3 rounded-lg relative" role="alert">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <span className="block sm:inline">
+                  <strong>Demo Mode:</strong> Supabase is not configured. Authentication is disabled.
+                </span>
+              </div>
+              <p className="mt-2 text-sm">
+                To enable full functionality, please configure your Supabase environment variables.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className={`${isEmailNotConfirmed ? 'bg-yellow-100 dark:bg-yellow-900 border-yellow-400 text-yellow-700 dark:text-yellow-200' : 'bg-red-100 dark:bg-red-900 border-red-400 text-red-700 dark:text-red-200'} border px-4 py-3 rounded-lg relative`} role="alert">
               <span className="block sm:inline">{error}</span>
-              {isEmailNotConfirmed && (
+              {isEmailNotConfirmed && !isDemoMode && (
                 <button
                   onClick={handleResendEmail}
                   disabled={resendingEmail}
@@ -125,10 +139,11 @@ const Auth: React.FC = () => {
                     type="email"
                     autoComplete="email"
                     required
+                    disabled={isDemoMode}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="Enter your email"
+                    className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder={isDemoMode ? "Authentication disabled in demo mode" : "Enter your email"}
                   />
                 </div>
               </div>
@@ -147,10 +162,11 @@ const Auth: React.FC = () => {
                     type="password"
                     autoComplete="current-password"
                     required
+                    disabled={isDemoMode}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder={isSignUp ? "Create a password (min. 6 characters)" : "Enter your password"}
+                    className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder={isDemoMode ? "Authentication disabled in demo mode" : (isSignUp ? "Create a password (min. 6 characters)" : "Enter your password")}
                   />
                 </div>
               </div>
@@ -159,9 +175,9 @@ const Auth: React.FC = () => {
             <div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isDemoMode}
                 className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                  (loading || isDemoMode) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
@@ -171,25 +187,33 @@ const Auth: React.FC = () => {
                     <LogIn className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" />
                   )}
                 </span>
-                {loading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
+                {isDemoMode 
+                  ? 'Demo Mode - Authentication Disabled' 
+                  : loading 
+                    ? 'Processing...' 
+                    : isSignUp 
+                      ? 'Create Account' 
+                      : 'Sign In'}
               </button>
             </div>
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setError('');
-                  setIsEmailNotConfirmed(false);
-                }}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors duration-200"
-              >
-                {isSignUp
-                  ? 'Already have an account? Sign in'
-                  : "Don't have an account? Sign up"}
-              </button>
-            </div>
+            {!isDemoMode && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setError('');
+                    setIsEmailNotConfirmed(false);
+                  }}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors duration-200"
+                >
+                  {isSignUp
+                    ? 'Already have an account? Sign in'
+                    : "Don't have an account? Sign up"}
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

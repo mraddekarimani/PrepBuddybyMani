@@ -2,16 +2,15 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 import { Task, Category } from '../types';
-import { sendDailyReminder, sendProgressUpdate } from '../lib/notifications';
 
 // Default categories for new users
-const defaultCategories: Omit<Category, 'id'>[] = [
-  { name: 'DSA', color: 'bg-blue-500' },
-  { name: 'Aptitude', color: 'bg-green-500' },
-  { name: 'CS Fundamentals', color: 'bg-purple-500' },
-  { name: 'Resume', color: 'bg-yellow-500' },
-  { name: 'Projects', color: 'bg-pink-500' },
-  { name: 'Mock Interviews', color: 'bg-red-500' },
+const defaultCategories: Category[] = [
+  { id: '1', name: 'DSA', color: 'bg-blue-500' },
+  { id: '2', name: 'Aptitude', color: 'bg-green-500' },
+  { id: '3', name: 'CS Fundamentals', color: 'bg-purple-500' },
+  { id: '4', name: 'Resume', color: 'bg-yellow-500' },
+  { id: '5', name: 'Projects', color: 'bg-pink-500' },
+  { id: '6', name: 'Mock Interviews', color: 'bg-red-500' },
 ];
 
 interface TaskContextType {
@@ -45,9 +44,9 @@ interface TaskContextType {
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(defaultCategories);
   const [currentDay, setCurrentDayState] = useState<number>(1);
   const [streak, setStreak] = useState<number>(0);
   const [notificationSettings, setNotificationSettings] = useState({
@@ -58,25 +57,33 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user's data when authenticated
   useEffect(() => {
     if (user) {
-      fetchUserData();
+      if (isDemoMode) {
+        // Initialize demo data
+        setCategories(defaultCategories);
+        setTasks([]);
+        setCurrentDayState(1);
+        setStreak(0);
+      } else {
+        fetchUserData();
+      }
     } else {
       // Reset state when user logs out
       setTasks([]);
-      setCategories([]);
+      setCategories(defaultCategories);
       setCurrentDayState(1);
       setStreak(0);
     }
-  }, [user]);
+  }, [user, isDemoMode]);
 
   // Add notification settings fetch
   useEffect(() => {
-    if (user) {
+    if (user && !isDemoMode) {
       fetchNotificationSettings();
     }
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const fetchNotificationSettings = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
 
     const { data } = await supabase
       .from('user_settings')
@@ -112,7 +119,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchUserData = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
 
     // Fetch categories
     const { data: categoriesData } = await supabase
@@ -174,7 +181,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     emailNotifications: boolean;
     dailyReminders: boolean;
   }) => {
-    if (!user) return;
+    if (!user || isDemoMode) {
+      setNotificationSettings(settings);
+      return;
+    }
 
     const { error } = await supabase
       .from('user_settings')
@@ -191,6 +201,19 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addTask = async (task: Omit<Task, 'id'>) => {
     if (!user) return;
+
+    const newTask = {
+      ...task,
+      id: isDemoMode ? `demo-task-${Date.now()}` : '',
+    };
+
+    if (isDemoMode) {
+      setTasks([...tasks, newTask as Task]);
+      if (task.completed) {
+        setStreak(streak + 1);
+      }
+      return;
+    }
 
     const { data, error } = await supabase
       .from('tasks')
@@ -210,6 +233,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateTask = async (updatedTask: Task) => {
     if (!user) return;
 
+    if (isDemoMode) {
+      setTasks(tasks.map(task => task.id === updatedTask.id ? updatedTask : task));
+      return;
+    }
+
     const { error } = await supabase
       .from('tasks')
       .update(updatedTask)
@@ -221,6 +249,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTask = async (id: string) => {
     if (!user) return;
+
+    if (isDemoMode) {
+      setTasks(tasks.filter(task => task.id !== id));
+      return;
+    }
 
     const { error } = await supabase
       .from('tasks')
@@ -247,13 +280,21 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
       
       if (allCompleted && dayTasks.length > 0) {
-        await updateStreak(true);
+        if (isDemoMode) {
+          setStreak(streak + 1);
+        } else {
+          await updateStreak(true);
+        }
       }
     }
   };
 
   const updateStreak = async (completed: boolean) => {
-    if (!user) return;
+    if (!user || isDemoMode) {
+      const newStreak = completed ? streak + 1 : 0;
+      setStreak(newStreak);
+      return;
+    }
 
     const newStreak = completed ? streak + 1 : 0;
     const { error } = await supabase
@@ -271,6 +312,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addCategory = async (category: Omit<Category, 'id'>) => {
     if (!user) return;
 
+    const newCategory = {
+      ...category,
+      id: isDemoMode ? `demo-category-${Date.now()}` : '',
+    };
+
+    if (isDemoMode) {
+      setCategories([...categories, newCategory as Category]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('categories')
       .insert({ ...category, user_id: user.id })
@@ -286,6 +337,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteCategory = async (id: string) => {
     if (!user) return;
 
+    if (isDemoMode) {
+      setCategories(categories.filter(category => category.id !== id));
+      return;
+    }
+
     const { error } = await supabase
       .from('categories')
       .delete()
@@ -297,6 +353,13 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateCategory = async (updatedCategory: Category) => {
     if (!user) return;
+
+    if (isDemoMode) {
+      setCategories(categories.map(category => 
+        category.id === updatedCategory.id ? updatedCategory : category
+      ));
+      return;
+    }
 
     const { error } = await supabase
       .from('categories')
@@ -315,6 +378,13 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetProgress = async () => {
     if (!user || !window.confirm('Are you sure you want to reset your progress? This will delete all tasks and reset your day count.')) {
+      return;
+    }
+
+    if (isDemoMode) {
+      setTasks([]);
+      setCurrentDayState(1);
+      setStreak(0);
       return;
     }
 
@@ -344,6 +414,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setCurrentDay = async (day: number) => {
     if (!user) return;
 
+    if (isDemoMode) {
+      setCurrentDayState(day);
+      return;
+    }
+
     const { error } = await supabase
       .from('progress')
       .update({ current_day: day })
@@ -363,22 +438,20 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!window.confirm('Not all tasks for today are completed. Are you sure you want to move to the next day?')) {
         return;
       }
-      await updateStreak(false);
+      if (isDemoMode) {
+        setStreak(0);
+      } else {
+        await updateStreak(false);
+      }
     } else if (todayTasks.length > 0) {
-      await updateStreak(true);
-      
-      // Send progress update if enabled
-      if (notificationSettings.emailNotifications && user.email) {
-        await sendProgressUpdate(user.email, currentDay, completionRate, streak);
+      if (isDemoMode) {
+        setStreak(streak + 1);
+      } else {
+        await updateStreak(true);
       }
     }
 
     await setCurrentDay(currentDay + 1);
-
-    // Send daily reminder for the next day if enabled
-    if (notificationSettings.dailyReminders && user.email) {
-      await sendDailyReminder(user.email, currentDay + 1);
-    }
   };
 
   const decrementDay = async () => {
