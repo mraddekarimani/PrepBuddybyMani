@@ -6,11 +6,13 @@ import ProgressStats from '../components/ProgressStats';
 import CategoryList from '../components/CategoryList';
 import DayNavigation from '../components/DayNavigation';
 import ProgressCalendar from '../components/ProgressCalendar';
-import { Plus, RefreshCw, Filter, X, Calendar } from 'lucide-react';
+import UserProfile from '../components/UserProfile';
+import { Plus, RefreshCw, Filter, X, Calendar, User } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { tasks, getTasksByDay, currentDay, resetProgress, categories } = useTaskContext();
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   
@@ -39,6 +41,30 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <ProgressStats />
       <DayNavigation />
+      
+      {/* Quick Actions Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center text-sm px-3 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors duration-200"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Profile & Settings
+            </button>
+            <button
+              onClick={toggleTaskForm}
+              className="flex items-center text-sm px-3 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors duration-200"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </button>
+          </div>
+        </div>
+      </div>
+
       <ProgressCalendar />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -57,13 +83,6 @@ const Dashboard: React.FC = () => {
                   />
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={toggleTaskForm}
-                    className="flex items-center text-sm px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors duration-200"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Task
-                  </button>
                   <button
                     onClick={resetProgress}
                     className="flex items-center text-sm px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
@@ -149,11 +168,21 @@ const Dashboard: React.FC = () => {
                 <li>Set clear, achievable goals for each day</li>
                 <li>Use categories to organize different areas of preparation</li>
                 <li>Track your daily progress using the calendar</li>
+                <li>Update your profile and notification preferences</li>
               </ul>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <UserProfile onClose={() => setShowProfile(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
