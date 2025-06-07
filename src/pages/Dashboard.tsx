@@ -84,6 +84,13 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={toggleTaskForm}
+                    className="flex items-center text-sm px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors duration-200"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Task
+                  </button>
+                  <button
                     onClick={resetProgress}
                     className="flex items-center text-sm px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
                   >
